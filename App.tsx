@@ -1,21 +1,36 @@
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 
-export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+if (__DEV__) {
+  import('./src/config/ReactotronConfig').then(() => console.log('Reactotron Configured'));
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+
+import { persistor, store } from './src/store';
+
+import { Routes } from './src/routes/index.routes';
+import { TodoQueue } from './src/queue';
+
+export default function App() {
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((status) => {
+      if (status.isConnected && TodoQueue.existsQueue()) {
+        TodoQueue.execute();
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <StatusBar style="dark" translucent backgroundColor="transparent" />
+        <Routes />
+      </PersistGate>
+    </Provider>
+  );
+}
